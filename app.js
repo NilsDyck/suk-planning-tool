@@ -6,6 +6,7 @@
   "use strict";
 
   const ADMIN_PASSWORD = "Passwort";
+  const GROUP_PASSWORD = "img";
 
   const LEARNING_OBJECTIVES = [
     { name: "Akteure analysieren", index: 1, color: "border-1" },
@@ -19,6 +20,7 @@
   let cardCounter = 0;
   let draggedCardEl = null;
   let isAdmin = false;
+  let isGroupUnlocked = false;
   let saveTimeout = null;
   let pollingInterval = null;
   let hasLocalChanges = false;
@@ -137,7 +139,22 @@
     showPage("start");
   }
 
+  function tryGroupUnlock() {
+    const pw = $("#group-password").value;
+    const errorSpan = $("#group-password-error");
+    const grid = $("#group-grid");
+
+    if (pw === GROUP_PASSWORD) {
+      isGroupUnlocked = true;
+      grid.classList.remove("hidden");
+      errorSpan.textContent = "";
+    } else {
+      errorSpan.textContent = "Falsches Passwort";
+    }
+  }
+
   function goToPlanning(group) {
+    if (!isGroupUnlocked) return;
     currentGroup = group;
     groupBadgeNum.textContent = group;
     showPage("planning");
@@ -581,6 +598,12 @@
     setTimeout(() => window.print(), 300);
   }
 
+  function cleanupPrintContent() {
+    var pc = $("#print-content");
+    pc.innerHTML = "";
+    pc.setAttribute("hidden", "");
+  }
+
   function buildPrintContent(state, group) {
     var printContent = $("#print-content");
     var gradesText = state.grades && state.grades.length > 0 ? state.grades.join(", ") : "nicht angegeben";
@@ -718,6 +741,15 @@
 
     document.addEventListener("input", () => { if (currentGroup) markLocalChange(); });
     document.addEventListener("change", () => { if (currentGroup) markLocalChange(); });
+
+    /* ── After print: clean up print content ── */
+    window.addEventListener("afterprint", cleanupPrintContent);
+
+    /* ── Group password unlock ── */
+    $("#btn-group-unlock").addEventListener("click", tryGroupUnlock);
+    $("#group-password").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") tryGroupUnlock();
+    });
 
     showPage("start");
   });

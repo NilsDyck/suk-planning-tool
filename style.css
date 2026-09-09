@@ -119,6 +119,44 @@ body {
   color: var(--clr-primary);
 }
 
+.group-password-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.group-password-row input {
+  padding: 8px 12px;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 0.9rem;
+  width: 200px;
+}
+
+.group-password-row button {
+  padding: 8px 16px;
+  background: var(--clr-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.group-password-row button:hover {
+  background: var(--clr-primary-hover);
+}
+
+.group-password-error {
+  color: var(--clr-danger);
+  font-size: 0.85rem;
+  position: absolute;
+}
+
 /* ── Admin ── */
 .btn-admin-toggle {
   background: transparent;
