@@ -233,19 +233,31 @@
     $("#btn-admin-clear-all").addEventListener("click", adminClearAll);
   }
 
-  async function adminSaveAll() {
-    const all = await apiLoadAllGroups();
-    const date = new Date().toISOString().slice(0, 10);
+  async function loadAllGroupsFromServer() {
+    var result = {};
+    for (var g = 1; g <= 8; g++) {
+      try {
+        var data = await apiLoadGroup(g);
+        if (data && data.group) {
+          result[g] = data;
+        }
+      } catch (_) { /* skip */ }
+    }
+    return result;
+  }
 
-    /* Build combined object – ALL groups 1-8, even empty ones */
-    const combined = {
+  async function adminSaveAll() {
+    var all = await loadAllGroupsFromServer();
+    var date = new Date().toISOString().slice(0, 10);
+
+    var combined = {
       version: 1,
       exportedAt: new Date().toISOString(),
       groups: {},
     };
 
-    for (let g = 1; g <= 8; g++) {
-      combined.groups[g] = all && all[g] ? { ...all[g], group: g } : {
+    for (var g = 1; g <= 8; g++) {
+      combined.groups[g] = all[g] ? { ...all[g], group: g } : {
         group: g,
         problem: "",
         grades: [],
@@ -253,31 +265,34 @@
       };
     }
 
-    const blob = new Blob([JSON.stringify(combined, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    var blob = new Blob([JSON.stringify(combined, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
     a.href = url;
     a.download = "suk-planung-alle-gruppen-" + date + ".json";
     a.click();
     URL.revokeObjectURL(url);
+
+    var count = Object.keys(all).length;
+    alert("Export abgeschlossen. " + count + " von 8 Gruppen mit Daten exportiert.");
   }
 
-  function adminPdfAll() {
-    apiLoadAllGroups().then((all) => {
-      /* Build array of ALL 8 groups, even empty ones */
-      const fullAll = {};
-      for (let g = 1; g <= 8; g++) {
-        fullAll[g] = all && all[g] ? { ...all[g], group: g } : {
-          group: g,
-          problem: "",
-          grades: [],
-          cards: [],
-        };
-      }
-      buildAdminPrintContent(fullAll);
-      $("#print-content").removeAttribute("hidden");
-      setTimeout(() => window.print(), 300);
-    });
+  async function adminPdfAll() {
+    var all = await loadAllGroupsFromServer();
+    var fullAll = {};
+
+    for (var g = 1; g <= 8; g++) {
+      fullAll[g] = all[g] ? { ...all[g], group: g } : {
+        group: g,
+        problem: "",
+        grades: [],
+        cards: [],
+      };
+    }
+
+    buildAdminPrintContent(fullAll);
+    $("#print-content").removeAttribute("hidden");
+    setTimeout(function () { window.print(); }, 500);
   }
 
   async function adminClearAll() {
