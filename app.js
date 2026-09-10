@@ -292,7 +292,11 @@
 
     buildAdminPrintContent(fullAll);
     $("#print-content").removeAttribute("hidden");
-    setTimeout(function () { window.print(); }, 500);
+    setTimeout(function () { 
+      window.print(); 
+      /* Cleanup after print dialog */
+      setTimeout(cleanupPrintContent, 1000);
+    }, 500);
   }
 
   async function adminClearAll() {
@@ -619,10 +623,13 @@
      ═══════════════════════════════════════════ */
 
   function exportPDF() {
-    const state = collectAllState();
+    var state = collectAllState();
     buildPrintContent(state, currentGroup);
     $("#print-content").removeAttribute("hidden");
-    setTimeout(() => window.print(), 300);
+    setTimeout(function () { 
+      window.print(); 
+      setTimeout(cleanupPrintContent, 1000);
+    }, 300);
   }
 
   function cleanupPrintContent() {
