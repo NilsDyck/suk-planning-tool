@@ -235,17 +235,23 @@
 
   async function adminSaveAll() {
     const all = await apiLoadAllGroups();
-    if (!all || Object.keys(all).length === 0) {
-      alert("Keine Gruppen mit Daten gefunden.");
-      return;
-    }
-
     const date = new Date().toISOString().slice(0, 10);
+
+    /* Build combined object – ALL groups 1-8, even empty ones */
     const combined = {
       version: 1,
       exportedAt: new Date().toISOString(),
-      groups: all,
+      groups: {},
     };
+
+    for (let g = 1; g <= 8; g++) {
+      combined.groups[g] = all && all[g] ? { ...all[g], group: g } : {
+        group: g,
+        problem: "",
+        grades: [],
+        cards: [],
+      };
+    }
 
     const blob = new Blob([JSON.stringify(combined, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -258,11 +264,17 @@
 
   function adminPdfAll() {
     apiLoadAllGroups().then((all) => {
-      if (!all || Object.keys(all).length === 0) {
-        alert("Keine Gruppen mit Daten gefunden.");
-        return;
+      /* Build array of ALL 8 groups, even empty ones */
+      const fullAll = {};
+      for (let g = 1; g <= 8; g++) {
+        fullAll[g] = all && all[g] ? { ...all[g], group: g } : {
+          group: g,
+          problem: "",
+          grades: [],
+          cards: [],
+        };
       }
-      buildAdminPrintContent(all);
+      buildAdminPrintContent(fullAll);
       $("#print-content").removeAttribute("hidden");
       setTimeout(() => window.print(), 300);
     });
@@ -657,6 +669,7 @@
     groupKeys.forEach(function (g) {
       var state = allGroups[g];
       var gradesText = state.grades && state.grades.length > 0 ? state.grades.join(", ") : "nicht angegeben";
+      var hasCards = state.cards && state.cards.length > 0;
 
       html += '<h1>SUK-Planungstool \u2013 Gruppe ' + g + '</h1>';
       html += '<div class="print-meta">Jahrgangsstufe: ' + gradesText + '</div>';
@@ -665,34 +678,38 @@
         html += '<div class="print-problem"><strong>Soziotechnisches Problem:</strong><br>' + escapeHtml(state.problem) + '</div>';
       }
 
-      html += '<div class="print-grid">';
-      (state.cards || []).forEach(function (card, i) {
-        var objText = card.objectives && card.objectives.length > 0
-          ? card.objectives.join("; ") + (card.otherText ? " (Andere: " + card.otherText + ")" : "")
-          : "keine Auswahl";
+      if (!hasCards) {
+        html += '<div style="font-size:13px;color:#6b7280;padding:20px 0;">Keine Daten f\u00fcr diese Gruppe vorhanden.</div>';
+      } else {
+        html += '<div class="print-grid">';
+        (state.cards || []).forEach(function (card, i) {
+          var objText = card.objectives && card.objectives.length > 0
+            ? card.objectives.join("; ") + (card.otherText ? " (Andere: " + card.otherText + ")" : "")
+            : "keine Auswahl";
 
-        var borderColor = "#d1d5db";
-        if (card.objectives && card.objectives.length > 0) {
-          var first = card.objectives[0];
-          if (first === "Akteure analysieren") borderColor = "#3b82f6";
-          else if (first === "Relevante Ziele, Werte und Konflikte identifizieren") borderColor = "#22c55e";
-          else if (first === "Nutzungs- und Gestaltungsoptionen generieren") borderColor = "#eab308";
-          else if (first === "Optionen bewerten") borderColor = "#ef4444";
-          else if (first === "Unsicherheiten reflektieren") borderColor = "#a855f7";
-          else if (first === "Andere") borderColor = "#6b7280";
-        }
+          var borderColor = "#d1d5db";
+          if (card.objectives && card.objectives.length > 0) {
+            var first = card.objectives[0];
+            if (first === "Akteure analysieren") borderColor = "#3b82f6";
+            else if (first === "Relevante Ziele, Werte und Konflikte identifizieren") borderColor = "#22c55e";
+            else if (first === "Nutzungs- und Gestaltungsoptionen generieren") borderColor = "#eab308";
+            else if (first === "Optionen bewerten") borderColor = "#ef4444";
+            else if (first === "Unsicherheiten reflektieren") borderColor = "#a855f7";
+            else if (first === "Andere") borderColor = "#6b7280";
+          }
 
-        html += '<div class="print-card" style="border-color:' + borderColor + ';">';
-        html += '<h3>Planungskarte ' + (i + 1) + '</h3>';
-        html += '<div class="section-label">Lernziel</div>';
-        html += '<div class="section-value">' + escapeHtml(objText) + '</div>';
-        html += '<div class="section-label">Evidenz/Produkt</div>';
-        html += '<div class="section-value">' + (escapeHtml(card.evidence) || "\u2014") + '</div>';
-        html += '<div class="section-label">T\u00e4tigkeit</div>';
-        html += '<div class="section-value">' + (escapeHtml(card.activity) || "\u2014") + '</div>';
+          html += '<div class="print-card" style="border-color:' + borderColor + ';">';
+          html += '<h3>Planungskarte ' + (i + 1) + '</h3>';
+          html += '<div class="section-label">Lernziel</div>';
+          html += '<div class="section-value">' + escapeHtml(objText) + '</div>';
+          html += '<div class="section-label">Evidenz/Produkt</div>';
+          html += '<div class="section-value">' + (escapeHtml(card.evidence) || "\u2014") + '</div>';
+          html += '<div class="section-label">T\u00e4tigkeit</div>';
+          html += '<div class="section-value">' + (escapeHtml(card.activity) || "\u2014") + '</div>';
+          html += '</div>';
+        });
         html += '</div>';
-      });
-      html += '</div>';
+      }
       html += '<div style="page-break-before:always;"></div>';
     });
 
